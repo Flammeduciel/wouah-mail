@@ -20,4 +20,9 @@ export interface Database {
   runAsync(source: string, params?: SqlParams): Promise<SqlRunResult>;
   getFirstAsync<T>(source: string, params?: SqlParams): Promise<T | null>;
   getAllAsync<T>(source: string, params?: SqlParams): Promise<T[]>;
+  /**
+   * False when the engine has no FTS5 (the web build): migrations skip the
+   * full-text index and search falls back to LIKE. Absent means supported.
+   */
+  readonly supportsFullText?: boolean;
 }

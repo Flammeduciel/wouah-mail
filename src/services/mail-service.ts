@@ -1630,12 +1630,38 @@ export class MailService {
     return count;
   }
 
+  /**
+   * « Archiver »: the conversation leaves the list. On Gmail it also leaves
+   * the inbox (label INBOX removed), exactly like archiving in Gmail. IMAP
+   * archiving stays in the app: moving the mail to another server folder would
+   * make the next sync drop it from the phone.
+   */
   async archiveThread(threadId: string): Promise<void> {
+    await this.setThreadInInbox(threadId, false);
     await setThreadArchivedRow(this.db, threadId, true);
   }
 
   async unarchiveThread(threadId: string): Promise<void> {
+    await this.setThreadInInbox(threadId, true);
     await setThreadArchivedRow(this.db, threadId, false);
+  }
+
+  private async setThreadInInbox(threadId: string, inInbox: boolean): Promise<void> {
+    const messages = await listMessagesByThread(this.db, threadId);
+    for (const message of messages) {
+      const provider = this.registry.get(message.accountId);
+      if (!provider || provider.id !== 'gmail' || message.remoteUid === null) continue;
+      const folder = await getFolderByRole(this.db, message.accountId, 'inbox');
+      if (!folder || message.folderId !== folder.id) continue;
+      try {
+        if (inInbox) await provider.unarchive?.(message.remoteUid);
+        else await provider.archive(message.remoteUid);
+      } catch (error) {
+        // Best effort: the conversation is archived in the app anyway.
+        console.warn('[MailService] Gmail archive failed', error);
+      }
+    }
+    if (messages[0]) this.serverCountsAt.delete(messages[0].accountId);
   }
 
   /** Remove every message of a thread locally and on the server. */

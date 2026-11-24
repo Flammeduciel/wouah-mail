@@ -5,7 +5,7 @@
 
 import * as Network from 'expo-network';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, ToastAndroid, Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { formatFileSize } from '@/domain/attachments';
 import type { Attachment } from '@/domain/models';
@@ -19,10 +19,11 @@ import {
 } from '@/services/attachment-files';
 import type { PdfPreviewSource } from '@/ui/PdfThumbnail';
 import { useApp } from '@/state/app-context';
+import { showToast } from '@/ui/toast';
 
 function toast(message: string): void {
   if (Platform.OS === 'android') {
-    ToastAndroid.show(message, ToastAndroid.SHORT);
+    showToast(message);
   } else {
     Alert.alert(message);
   }

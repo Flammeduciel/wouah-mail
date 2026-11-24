@@ -245,7 +245,10 @@ export async function migrate(db: Database): Promise<void> {
   await db.execAsync('PRAGMA foreign_keys = ON');
 
   while (version < MIGRATIONS.length) {
-    await db.execAsync(MIGRATIONS[version]);
+    // No FTS5 on the web build: the full-text index is skipped (search uses LIKE).
+    if (!(MIGRATIONS[version] === MIGRATION_2 && db.supportsFullText === false)) {
+      await db.execAsync(MIGRATIONS[version]);
+    }
     version += 1;
     await db.execAsync(`PRAGMA user_version = ${version}`);
   }

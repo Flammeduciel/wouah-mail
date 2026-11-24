@@ -2,8 +2,9 @@ import * as Notifications from 'expo-notifications';
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -11,6 +12,9 @@ import { AppProvider, useApp } from '@/state/app-context';
 import { AppText, Button, Screen, SheetHost, Spacing, useResolvedScheme } from '@/ui';
 
 SplashScreen.preventAutoHideAsync();
+
+// Web build: the Google sign-in popup lands here and hands the token back.
+if (Platform.OS === 'web') WebBrowser.maybeCompleteAuthSession();
 
 export default function RootLayout() {
   return (
@@ -65,7 +69,10 @@ function AppShell() {
 
 /** A tapped app notification opens its conversation (once unlocked). */
 function useOpenTappedNotification(locked: boolean) {
-  const response = Notifications.useLastNotificationResponse();
+  // No notification responses on the web build.
+  const useResponse =
+    Platform.OS === 'web' ? () => null : Notifications.useLastNotificationResponse;
+  const response = useResponse();
   const handled = useRef<string | null>(null);
   useEffect(() => {
     if (locked || !response) return;

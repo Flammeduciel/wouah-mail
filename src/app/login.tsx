@@ -2,7 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { createGmailOAuthAdapter, fetchGmailAddress } from '@/providers';
 import { COMING_SOON_SERVICES, MAIL_SERVICES } from '@/providers/imap/presets';
@@ -10,8 +10,15 @@ import { useApp } from '@/state/app-context';
 import { useServiceQuery } from '@/state/use-service-query';
 import { AppText, Avatar, Button, Header, Screen, ServiceLogo, Spacing, useAppTheme } from '@/ui';
 
-/** Configured through `expo.extra.gmailClientId`; empty when the build has none. */
-const GMAIL_CLIENT_ID = (Constants.expoConfig?.extra?.gmailClientId as string | undefined) ?? '';
+/**
+ * Android: `expo.extra.gmailClientId`. Web build: the « Web application » client
+ * of the same Google Cloud project, given at build time
+ * (`EXPO_PUBLIC_GMAIL_WEB_CLIENT_ID`).
+ */
+const GMAIL_CLIENT_ID =
+  Platform.OS === 'web'
+    ? (process.env.EXPO_PUBLIC_GMAIL_WEB_CLIENT_ID ?? '')
+    : ((Constants.expoConfig?.extra?.gmailClientId as string | undefined) ?? '');
 
 /**
  * Least privilege, matching the Google Cloud consent configuration exactly:
@@ -105,97 +112,106 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* IMAP services, with their logos */}
-        <AppText
-          variant="caption"
-          weight="semibold"
-          color="textSecondary"
-          style={styles.sectionLabel}
-        >
-          AUTRES MESSAGERIES
-        </AppText>
-        <View style={styles.grid}>
-          {imapServices.map((service) => (
-            <Pressable
-              key={service.id}
-              onPress={() =>
-                router.push({ pathname: '/imap-login', params: { service: service.id } })
-              }
-              style={({ pressed }) => [
-                styles.tile,
-                {
-                  backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={`Connecter ${service.name}`}
-              testID={`connect-${service.id}`}
+        {/* The web build is a Gmail test environment: IMAP needs the Android module. */}
+        {Platform.OS === 'web' ? (
+          <AppText variant="caption" color="textMuted" style={styles.intro}>
+            Web test version: Gmail only. Other mail services are available in the Android app.
+          </AppText>
+        ) : (
+          <>
+            {/* IMAP services, with their logos */}
+            <AppText
+              variant="caption"
+              weight="semibold"
+              color="textSecondary"
+              style={styles.sectionLabel}
             >
-              <ServiceLogo
-                id={service.id}
-                color={service.color}
-                monogram={service.monogram}
-                size={40}
-                wide
-              />
-              <AppText
-                variant="caption"
-                weight="semibold"
-                numberOfLines={1}
-                style={styles.tileLabel}
-              >
-                {service.name}
-              </AppText>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Microsoft: coming later (Microsoft Graph) */}
-        <AppText
-          variant="caption"
-          weight="semibold"
-          color="textSecondary"
-          style={styles.sectionLabel}
-        >
-          BIENTÔT DISPONIBLE
-        </AppText>
-        <View
-          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        >
-          {COMING_SOON_SERVICES.map((service, index) => (
-            <View key={service.id}>
-              {index > 0 ? (
-                <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              ) : null}
-              <View style={styles.providerRow}>
-                <ServiceLogo
-                  id={service.id}
-                  color={service.color}
-                  monogram={service.monogram}
-                  muted
-                />
-                <View style={styles.providerText}>
-                  <AppText variant="body" weight="semibold" style={{ color: colors.textMuted }}>
-                    {service.name}
-                  </AppText>
-                  <AppText variant="caption" color="textMuted">
-                    Connexion Microsoft en préparation
-                  </AppText>
-                </View>
-                <View style={[styles.badge, { backgroundColor: colors.primaryContainer }]}>
+              AUTRES MESSAGERIES
+            </AppText>
+            <View style={styles.grid}>
+              {imapServices.map((service) => (
+                <Pressable
+                  key={service.id}
+                  onPress={() =>
+                    router.push({ pathname: '/imap-login', params: { service: service.id } })
+                  }
+                  style={({ pressed }) => [
+                    styles.tile,
+                    {
+                      backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Connecter ${service.name}`}
+                  testID={`connect-${service.id}`}
+                >
+                  <ServiceLogo
+                    id={service.id}
+                    color={service.color}
+                    monogram={service.monogram}
+                    size={40}
+                    wide
+                  />
                   <AppText
                     variant="caption"
                     weight="semibold"
-                    style={{ color: colors.onPrimaryContainer }}
+                    numberOfLines={1}
+                    style={styles.tileLabel}
                   >
-                    Bientôt
+                    {service.name}
                   </AppText>
-                </View>
-              </View>
+                </Pressable>
+              ))}
             </View>
-          ))}
-        </View>
+
+            {/* Microsoft: coming later (Microsoft Graph) */}
+            <AppText
+              variant="caption"
+              weight="semibold"
+              color="textSecondary"
+              style={styles.sectionLabel}
+            >
+              BIENTÔT DISPONIBLE
+            </AppText>
+            <View
+              style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+              {COMING_SOON_SERVICES.map((service, index) => (
+                <View key={service.id}>
+                  {index > 0 ? (
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                  ) : null}
+                  <View style={styles.providerRow}>
+                    <ServiceLogo
+                      id={service.id}
+                      color={service.color}
+                      monogram={service.monogram}
+                      muted
+                    />
+                    <View style={styles.providerText}>
+                      <AppText variant="body" weight="semibold" style={{ color: colors.textMuted }}>
+                        {service.name}
+                      </AppText>
+                      <AppText variant="caption" color="textMuted">
+                        Connexion Microsoft en préparation
+                      </AppText>
+                    </View>
+                    <View style={[styles.badge, { backgroundColor: colors.primaryContainer }]}>
+                      <AppText
+                        variant="caption"
+                        weight="semibold"
+                        style={{ color: colors.onPrimaryContainer }}
+                      >
+                        Bientôt
+                      </AppText>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
 
         {/* Connected accounts */}
         {accounts.length > 0 ? (

@@ -171,6 +171,8 @@ export interface MailProvider {
   setRead(remoteUid: number, isRead: boolean): Promise<void>;
   star(remoteUid: number, isStarred: boolean): Promise<void>;
   archive(remoteUid: number): Promise<void>;
+  /** Undo `archive` (Gmail: the INBOX label comes back). Optional. */
+  unarchive?(remoteUid: number): Promise<void>;
   moveToTrash(remoteUid: number): Promise<void>;
   /** Raw bytes (base64) of an attachment, for providers that need a download. */
   downloadAttachment?(remoteUid: number, remotePartId: string): Promise<string>;

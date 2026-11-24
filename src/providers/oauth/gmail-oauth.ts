@@ -63,11 +63,57 @@ const GOOGLE_DISCOVERY = {
   tokenEndpoint: 'https://oauth2.googleapis.com/token',
 };
 
+/** Where Google sends the browser back (route `oauthredirect`, same origin). */
+export function webRedirectUri(): string {
+  return `${globalThis.location?.origin ?? ''}/oauthredirect`;
+}
+
+/**
+ * Web build (test environment): a browser cannot keep a client secret, so it
+ * gets a short-lived access token directly (no refresh token). The consent
+ * screen is always shown.
+ */
+async function authorizeOnWeb(config: GmailOAuthConfig): Promise<OAuthTokens> {
+  const request = new AuthRequest({
+    clientId: config.clientId,
+    redirectUri: config.redirectUri.trim() || webRedirectUri(),
+    scopes: config.scopes,
+    responseType: ResponseType.Token,
+    usePKCE: false,
+    extraParams: { prompt: 'consent', include_granted_scopes: 'false' },
+  });
+  const result = await request.promptAsync(GOOGLE_DISCOVERY);
+  if (result.type === 'error') {
+    throw new Error(
+      `Autorisation Gmail refusée : ${result.error?.message ?? result.params?.error_description ?? result.params?.error ?? 'erreur inconnue'}`,
+    );
+  }
+  if (result.type !== 'success') {
+    throw new Error(`Autorisation Gmail interrompue (${result.type})`);
+  }
+  const accessToken = result.authentication?.accessToken ?? result.params.access_token;
+  if (!accessToken) {
+    throw new Error('Autorisation Gmail réussie sans jeton d’accès');
+  }
+  const expiresIn = result.authentication?.expiresIn ?? Number(result.params.expires_in ?? 3600);
+  return {
+    accessToken,
+    refreshToken: null,
+    expiresAt: Date.now() + expiresIn * 1000,
+    scope: result.params.scope ?? config.scopes.join(' '),
+    tokenType: 'Bearer',
+  };
+}
+
 export function createGmailOAuthAdapter(config: GmailOAuthConfig): OAuthAdapter {
   return {
     async authorize(): Promise<OAuthTokens> {
       // Required on web so the redirect popup can complete the session.
       WebBrowser.maybeCompleteAuthSession();
+
+      if (Platform.OS === 'web') {
+        return authorizeOnWeb(config);
+      }
 
       const redirectUri =
         config.redirectUri.trim() || makeRedirectUri({ native: nativeRedirectUri() });
