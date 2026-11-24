@@ -550,6 +550,9 @@ export async function searchMessages(
   query: string,
   options?: { accountId?: string; limit?: number },
 ): Promise<Message[]> {
+  if (db.supportsFullText === false) {
+    return searchMessagesWithLike(db, query, options);
+  }
   const match = buildFtsQuery(query);
   if (match === null) {
     return [];
@@ -569,6 +572,43 @@ export async function searchMessages(
      WHERE ${conditions.join(' AND ')}
      ORDER BY m.received_at DESC, m.id DESC
      LIMIT ?`,
+    params,
+  );
+  return rows.map(mapMessage);
+}
+
+/**
+ * Search without FTS5 (web build): every word must appear in the subject, the
+ * body or the sender. Slower, but enough for a mailbox of a few hundred mails.
+ */
+async function searchMessagesWithLike(
+  db: Database,
+  query: string,
+  options?: { accountId?: string; limit?: number },
+): Promise<Message[]> {
+  const words = query
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.replace(/[%_\\]/g, ''))
+    .filter(Boolean);
+  if (words.length === 0) return [];
+  const conditions: string[] = [];
+  const params: SqlValue[] = [];
+  for (const word of words) {
+    conditions.push(
+      '(lower(subject) LIKE ? OR lower(body_text) LIKE ? OR lower(sender_name) LIKE ? OR lower(sender_address) LIKE ?)',
+    );
+    const like = `%${word}%`;
+    params.push(like, like, like, like);
+  }
+  if (options?.accountId !== undefined) {
+    conditions.push('account_id = ?');
+    params.push(options.accountId);
+  }
+  params.push(options?.limit ?? -1);
+  const rows = await db.getAllAsync<MessageRow>(
+    `SELECT * FROM messages WHERE ${conditions.join(' AND ')}
+     ORDER BY received_at DESC, id DESC LIMIT ?`,
     params,
   );
   return rows.map(mapMessage);

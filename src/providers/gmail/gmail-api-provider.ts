@@ -224,6 +224,10 @@ export class GmailApiProvider implements MailProvider {
     await this.modifyLabels(remoteUid, { remove: ['INBOX'] });
   }
 
+  async unarchive(remoteUid: number): Promise<void> {
+    await this.modifyLabels(remoteUid, { add: ['INBOX'] });
+  }
+
   async moveToTrash(remoteUid: number): Promise<void> {
     const gmailId = await this.resolveGmailId(remoteUid);
     await this.request(`/messages/${gmailId}/trash`, { method: 'POST' });

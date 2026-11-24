@@ -2,14 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  ToastAndroid,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Account, NotificationRule } from '@/domain/models';
@@ -35,6 +28,7 @@ import {
   showAlert,
   showChoice,
 } from '@/ui';
+import { showToast } from '@/ui/toast';
 
 interface SettingsData {
   accounts: Account[];
@@ -159,7 +153,7 @@ export default function SettingsScreen() {
           onPress: () => {
             service
               .testGmailPush(15)
-              .then(() => ToastAndroid.show('Test lancé : fermez l’app', ToastAndroid.SHORT))
+              .then(() => showToast('Test lancé : fermez l’app'))
               .catch((cause: unknown) =>
                 showAlert(
                   'Test impossible',
@@ -257,7 +251,7 @@ export default function SettingsScreen() {
                 invalidate();
                 setSigningOut(null);
                 if (failed) {
-                  ToastAndroid.show('La déconnexion a échoué, réessayez.', ToastAndroid.SHORT);
+                  showToast('La déconnexion a échoué, réessayez.');
                   return;
                 }
                 // Back to the home screen, with nothing of this account left in the stack.

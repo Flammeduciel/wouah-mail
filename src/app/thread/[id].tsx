@@ -9,7 +9,6 @@ import {
   Linking,
   Pressable,
   StyleSheet,
-  ToastAndroid,
   View,
   type ListRenderItem,
 } from 'react-native';
@@ -53,6 +52,7 @@ import {
   type QuotedParent,
   showAlert,
 } from '@/ui';
+import { showToast } from '@/ui/toast';
 
 interface ThreadData {
   messages: Message[];
@@ -146,8 +146,13 @@ export default function ThreadScreen() {
     };
   }, []);
 
+  // Set when leaving after « Marquer comme non lu »: the refresh that follows
+  // must not mark the conversation read again.
+  const keepUnread = useRef(false);
   const { data, loading, reload } = useServiceQuery<ThreadData>(async (mailService) => {
-    const messages = await mailService.openThread(id);
+    const messages = keepUnread.current
+      ? await mailService.getThreadMessages(id)
+      : await mailService.openThread(id);
     const account = messages[0] ? await mailService.getAccountById(messages[0].accountId) : null;
     const attachments = await mailService.getThreadAttachments(id);
     const isSpam = await mailService.isThreadSpam(id);
@@ -607,9 +612,8 @@ export default function ThreadScreen() {
                 subject,
                 body: 'unsubscribe',
               });
-              ToastAndroid.show(
+              showToast(
                 result.status === 'sent' ? 'Demande de désabonnement envoyée' : 'Échec de l’envoi',
-                ToastAndroid.SHORT,
               );
             })(),
         },
@@ -620,10 +624,7 @@ export default function ThreadScreen() {
 
   const toggleSpam = async () => {
     await service.setThreadSpam(id, !data.isSpam);
-    ToastAndroid.show(
-      data.isSpam ? 'Remis dans la boîte de réception' : 'Signalé comme spam',
-      ToastAndroid.SHORT,
-    );
+    showToast(data.isSpam ? 'Remis dans la boîte de réception' : 'Signalé comme spam');
     await reload();
     invalidate();
   };
@@ -638,6 +639,7 @@ export default function ThreadScreen() {
       label: 'Marquer comme non lu',
       onPress: () =>
         void (async () => {
+          keepUnread.current = true;
           await service.markThreadRead(id, false);
           goBack();
         })(),
@@ -946,7 +948,7 @@ export default function ThreadScreen() {
           }}
           onCopyAddress={() => {
             void Clipboard.setStringAsync(sheetPerson.address);
-            ToastAndroid.show('Adresse copiée', ToastAndroid.SHORT);
+            showToast('Adresse copiée');
           }}
           onCall={(phone) => void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, '')}`)}
         />

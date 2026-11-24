@@ -1,4 +1,5 @@
 import { Redirect } from 'expo-router';
+import { Platform } from 'react-native';
 
 import { useApp } from '@/state/app-context';
 
@@ -12,8 +13,9 @@ import { useApp } from '@/state/app-context';
  */
 export default function Index() {
   const { service } = useApp();
-  // First launch: ask for notifications and battery before the inbox.
-  if (!service.getSettings().permissionsIntroDone) {
+  // First launch: ask for notifications and battery before the inbox (not on
+  // the web test build, which has neither).
+  if (Platform.OS !== 'web' && !service.getSettings().permissionsIntroDone) {
     return <Redirect href="/welcome" />;
   }
   return <Redirect href="/discussions" />;

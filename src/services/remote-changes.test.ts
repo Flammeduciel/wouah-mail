@@ -125,3 +125,20 @@ describe('emptying the trash', () => {
     expect(await service.emptyTrash()).toEqual({ deleted: 3, unsupported: [] });
   });
 });
+
+describe('archiving a Gmail conversation', () => {
+  it('removes it from the Gmail inbox too, and puts it back on unarchive', async () => {
+    const { service, provider } = await setup();
+    const archive = jest.spyOn(provider, 'archive');
+    provider.unarchive = jest.fn(async () => undefined);
+    const { thread, messages } = await unreadThread(service);
+
+    await service.archiveThread(thread.id);
+    expect(archive).toHaveBeenCalled();
+    expect((await service.listConversations()).some((t) => t.id === thread.id)).toBe(false);
+
+    await service.unarchiveThread(thread.id);
+    expect(provider.unarchive).toHaveBeenCalled();
+    expect(messages.length).toBeGreaterThan(0);
+  });
+});
