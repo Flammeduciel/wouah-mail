@@ -48,8 +48,8 @@ N'utilise **pas** ton compte personnel (YouTube avait retiré la première vidé
 1. **Retirer l'accès existant** : sur myaccount.google.com/permissions avec le compte démo, supprime Wouah Mail. Ainsi l'écran de consentement réapparaîtra en entier.
 2. **Désinstaller puis réinstaller** le dernier APK sur le téléphone.
 3. **Mails de test** : depuis une autre adresse, envoie au compte démo 5 mails non lus, avec des sujets en anglais :
-   - « Project meeting on Friday » (avec une pièce jointe PDF)
-   - « Invoice November »
+   - « Project meeting on Friday » (pièce jointe : `docs/demo-attachments/agenda.pdf`)
+   - « Invoice November » (pièce jointe facultative : `docs/demo-attachments/invoice-november.pdf`)
    - « Weekend plans »
    - « Special offer 50% » (servira pour le spam)
    - « Quick question »
