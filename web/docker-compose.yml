@@ -1,0 +1,12 @@
+# Wouah Mail web test version. In Dokploy: Create Service > Compose,
+# Compose Path « ./web/docker-compose.yml », then add the domain on service « web », port 80.
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+      args:
+        EXPO_PUBLIC_GMAIL_WEB_CLIENT_ID: ${EXPO_PUBLIC_GMAIL_WEB_CLIENT_ID}
+    restart: unless-stopped
+    expose:
+      - "80"

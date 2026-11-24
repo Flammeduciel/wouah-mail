@@ -142,3 +142,25 @@ describe('archiving a Gmail conversation', () => {
     expect(messages.length).toBeGreaterThan(0);
   });
 });
+
+describe('recipient suggestions', () => {
+  it('suggests saved Google contacts, then « Other contacts »', async () => {
+    const { service } = await setup();
+    const details = (saved: boolean, name: string) => ({
+      name,
+      phones: [],
+      organization: null,
+      jobTitle: null,
+      addresses: [],
+      birthday: null,
+      saved,
+    });
+    (service as unknown as { contactDetails: Map<string, unknown> }).contactDetails = new Map([
+      ['sam@example.com', details(false, 'Sam Lee')],
+      ['alex@example.com', details(true, 'Alex Martin')],
+    ]);
+    const suggestions = await service.listContacts();
+    const tail = suggestions.slice(-2).map((s) => s.address);
+    expect(tail).toEqual(['alex@example.com', 'sam@example.com']);
+  });
+});

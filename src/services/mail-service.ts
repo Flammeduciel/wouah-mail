@@ -518,8 +518,8 @@ export class MailService {
   /** How much mail was exchanged with an address, across all accounts. */
   /**
    * Recipient suggestions: everyone mail was exchanged with (most recent
-   * first), then saved Google contacts never written to. Names prefer the
-   * saved contact name.
+   * first), then saved Google contacts, then Google « Other contacts », never
+   * written to from this phone. Names prefer the saved contact name.
    */
   async listContacts(): Promise<ContactSuggestion[]> {
     const accounts = await listAccounts(this.db);
@@ -540,9 +540,16 @@ export class MailService {
           lastAt: c.lastAt,
         };
       });
-    for (const [address, details] of this.contactDetails) {
-      if (!seen.has(address) && details.saved && !isNoReplyAddress(address)) {
-        result.push({ name: details.name ?? '', address, count: 0, lastAt: null });
+    // Saved Google contacts first, then « Other contacts » (people written to
+    // from Gmail but never saved), like Gmail's own autocomplete.
+    const extra = [...this.contactDetails].filter(
+      ([address]) => !seen.has(address) && !isNoReplyAddress(address),
+    );
+    for (const saved of [true, false]) {
+      for (const [address, details] of extra) {
+        if (details.saved === saved) {
+          result.push({ name: details.name ?? '', address, count: 0, lastAt: null });
+        }
       }
     }
     return result;
